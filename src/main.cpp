@@ -11,7 +11,7 @@
 #define P_AREA 1.53938f // piezo-active area (cm^2)
 #define SHEER_MOD 2.847e11 // Sheer modulus in g*cm^(-1)*s^(-2)
 #define RES_FREQ 5.000e6 // fundamental mode(Hz)
-#define GATE_INTERVAL 100 // (milliseconds)
+#define GATE_INTERVAL 1000 // (milliseconds)
 
 /* FreqCount - Example with serial output
  * http://www.pjrc.com/teensy/td_libs_FreqCount.html
@@ -44,66 +44,68 @@ FreqCount.read();
 FreqCount measures the number of cycles that occur during a fixed "gate interval" time. 
 This works well for relatively high frequencies, because many cycles are likely to be counted during 
 gate interval. At lower frequencies, very few cycles are counted, giving limited resolution.
-
 */
 
-uint32_t prev = 0;
+// uint32_t prev = 0;
 
 // (change in mass) * constant = (change in freq)
-double constant;
-double prev_thick = 0;
-double total_thickness = 0;
+// double constant;
+// double prev_thick = 0;
+// double total_thickness = 0;
 
-std::vector<double> thick_array;
+// std::vector<double> thick_array;
 
-void measure();
-void update_output();
-double calculate_deposition_rate(double dth, double time);
-double calculate_deposition_thickness(double df);
+// void measure();
+// void update_output();
+// double calculate_deposition_rate(double dth, double time);
+// double calculate_deposition_thickness(double df);
 
 void setup() {
-  thick_array.resize(ARRAY_SIZE, 0);
-  constant = (-2.0f*RES_FREQ*RES_FREQ)/(P_AREA*pow(Q_DENSE*SHEER_MOD, 0.5f));
+  // thick_array.resize(ARRAY_SIZE, 0);
+  // constant = (-2.0f*RES_FREQ*RES_FREQ)/(P_AREA*pow(Q_DENSE*SHEER_MOD, 0.5f));
   Serial.begin(57600);
   delay(2000);
+  Serial.println("FreqCount test starting...");
   
   // measures the number of cycles that occur during a fixed "gate interval" time
   FreqCount.begin(GATE_INTERVAL);  //Time in microseconds
+  // 1 second will get ~ 6,000,000 counts
 }
 
 void loop() {
   if (FreqCount.available()) {
 
-    uint32_t freq = FreqCount.read();
-    Serial.println(freq);
+    unsigned long freq = FreqCount.read();
+    Serial.print("Measured frequency = ");
+    Serial.print(freq); 
+    Serial.println(" Hz");
 
-    double dfreq = prev - freq;
-    double thick = calculate_deposition_thickness(dfreq);
+    // double dfreq = prev - freq;
+    // double thick = calculate_deposition_thickness(dfreq);
     
-    thick_array.erase(thick_array.begin());
-    thick_array.push_back(thick);
+    // thick_array.erase(thick_array.begin());
+    // thick_array.push_back(thick);
 
-    double dthick = thick - prev_thick;
-    total_thickness += dthick;
+    // double dthick = thick - prev_thick;
+    // total_thickness += dthick;
 
-    double rate = calculate_deposition_rate(dthick, 1000);
-    prev = freq;
+    // double rate = calculate_deposition_rate(dthick, 1000);
+    // prev = freq;
 
 
-    Serial.println(thick);
-    delay(100);
+    // Serial.println(thick);
   }
 }
 
-double calculate_deposition_thickness(double df){
+// double calculate_deposition_thickness(double df){
 
-  // norm_freq = nom freq shift of that mode divided by its mode number 
-  double norm_freq = 1.0f * df / 1.0f; // I think it's already normalized..
-  double mass_change = norm_freq*constant;
-  double thickness = mass_change * 1.0f / P_AREA * 0.01f / F_DENSE;
-  return thickness;
-}
+//   // norm_freq = nom freq shift of that mode divided by its mode number 
+//   double norm_freq = 1.0f * df / 1.0f; // I think it's already normalized..
+//   double mass_change = norm_freq*constant;
+//   double thickness = mass_change * 1.0f / P_AREA * 0.01f / F_DENSE;
+//   return thickness;
+// }
 
-double calculate_deposition_rate(double dth, double time){
-  return 1.0f * dth / time;
-}
+// double calculate_deposition_rate(double dth, double time){
+//   return 1.0f * dth / time;
+// }
