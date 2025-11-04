@@ -2,16 +2,19 @@
 #include <vector>
 #include <Arduino.h>
 #include <FreqCount.h>
+#include <FreqMeasure.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_ST7735.h> // using my own, so no parts needed
 
-#define ARRAY_SIZE 100 // size of array we wanna keep track of
+#define SAMPLE 100 // size of array we wanna keep track of
 #define F_DENSE 2.33f // film density (g/cm^3) => figure this out
 #define Q_DENSE 2.648f // desntiy (g/cm^3)
 #define P_AREA 1.53938f // piezo-active area (cm^2)
 #define SHEER_MOD 2.847e11 // Sheer modulus in g*cm^(-1)*s^(-2)
 #define RES_FREQ 5.000e6 // fundamental mode(Hz)
 #define GATE_INTERVAL 1000 // (milliseconds)
+
+
 
 /* FreqCount - Example with serial output
  * http://www.pjrc.com/teensy/td_libs_FreqCount.html
@@ -53,7 +56,9 @@ gate interval. At lower frequencies, very few cycles are counted, giving limited
 // double prev_thick = 0;
 // double total_thickness = 0;
 
-// std::vector<double> thick_array;
+int freqCount = 0, measureCount = 0;
+uint32_t count_array[SAMPLE] = {0};
+double measure_array[SAMPLE] = {0};
 
 // void measure();
 // void update_output();
@@ -65,37 +70,72 @@ void setup() {
   // constant = (-2.0f*RES_FREQ*RES_FREQ)/(P_AREA*pow(Q_DENSE*SHEER_MOD, 0.5f));
   Serial.begin(57600);
   delay(2000);
-  Serial.println("FreqCount test starting...");
+  freqCount = SAMPLE-1;
+  measureCount = SAMPLE-1;
+  Serial.println("FreqCount/FreqMeasure test starting...");
   
   // measures the number of cycles that occur during a fixed "gate interval" time
   FreqCount.begin(GATE_INTERVAL);  //Time in microseconds
+  FreqMeasure.begin();
   // 1 second will get ~ 6,000,000 counts
 }
 
 void loop() {
-  if (FreqCount.available()) {
 
-    unsigned long freq = FreqCount.read();
-    Serial.print("Measured frequency = ");
-    Serial.print(freq); 
+  if(freqCount == 0){
+    double sum = 0.0f;
+    freqCount = SAMPLE-1;
+    for(size_t i = 0; i < SAMPLE; i++){
+        sum+=count_array[i];
+    }
+    sum /= (SAMPLE * 1.0f);
+    Serial.print("[FreqCount] Measured frequency = ");
+    Serial.print(sum); 
     Serial.println(" Hz");
+    freqCount = SAMPLE-1;
+  } 
 
-    // double dfreq = prev - freq;
-    // double thick = calculate_deposition_thickness(dfreq);
-    
-    // thick_array.erase(thick_array.begin());
-    // thick_array.push_back(thick);
-
-    // double dthick = thick - prev_thick;
-    // total_thickness += dthick;
-
-    // double rate = calculate_deposition_rate(dthick, 1000);
-    // prev = freq;
-
-
-    // Serial.println(thick);
+  if(measureCount == 0){
+    double sum = 0.0f;
+    measureCount = SAMPLE;
+    for(size_t i = 0; i < SAMPLE; i++){
+      sum+=measure_array[i];
+    }
+    sum /= (SAMPLE * 1.0f);
+    Serial.print("[FreqCount] Measured frequency = ");
+    Serial.print(sum); 
+    Serial.println(" Hz");
+    measureCount = SAMPLE;
   }
+
+  // infinite loop
+  if (FreqCount.available()) {
+    uint32_t freq = FreqCount.read();
+    count_array[freqCount] = freq;
+    freqCount--;
+  }
+
+  if(FreqMeasure.available()){
+      uint32_t count = FreqMeasure.read();
+      float freq = FreqMeasure.countToFrequency(count);
+      measure_array[measureCount] = freq;
+      measureCount--;
+    }
 }
+
+// double dfreq = prev - freq;
+// double thick = calculate_deposition_thickness(dfreq);
+
+// thick_array.erase(thick_array.begin());
+// thick_array.push_back(thick);
+
+// double dthick = thick - prev_thick;
+// total_thickness += dthick;
+
+// double rate = calculate_deposition_rate(dthick, 1000);
+// prev = freq;
+
+// Serial.println(thick);
 
 // double calculate_deposition_thickness(double df){
 
